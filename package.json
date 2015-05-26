@@ -10,8 +10,6 @@
   "author": "Jaco Bezuidenhout",
   "license": "ISC",
   "dependencies": {
-    "brain": "^0.7.0",
-    "x-ray": "^1.0.5",
-    "xray": "^0.5.0"
+    "x-ray": "^1.0.5"
   }
 }

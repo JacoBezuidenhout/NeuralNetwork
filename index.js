@@ -13,32 +13,40 @@ var NETWORK = function(config,cb)
 		this.iN = config.iN || 26;
 		this.oN = config.oN || 2;
 		this.hN = config.hN || 10;
-		this.oW = [];
-		this.hW = [];
+		this.hW = [];//Weights for hidden to output
+		this.oW = [];//Weights for input to hidden
+		this.hDelta = [];//deltaWeights for input to hidden
+		this.oDelta = [];//deltaWeights for hidden to output
 
 		//weights from the input to the hidden layer
 		var range = 1/Math.sqrt(this.iN);
 		for (var h = 0; h < this.hN; h++) 
 		{
 			var w = [];
+			var delta = [];
 			for (var i = 0; i <= this.iN; i++) 
 			{
 				var r = (Math.random()*range*2)-range;
 				w.push(r);
+				delta.push(0);//INIT the delta array
 			};
 			this.hW.push(JSON.parse(JSON.stringify(w)));
+			this.hDelta.push(JSON.parse(JSON.stringify(delta)));
 		};
 		
 		//weights from the hidden to the output layer
 		for (var h = 0; h < this.oN; h++) 
 		{
 			var w = [];
+			var delta = [];
 			for (var i = 0; i <= this.hN; i++) //smaller OR EQUAL because of the bias weight that should be added (number 27)
 			{
 				var r = (Math.random()*range*2)-range;
 				w.push(r);
+				delta.push(0);
 			};
 			this.oW.push(JSON.parse(JSON.stringify(w)));
+			this.oDelta.push(JSON.parse(JSON.stringify(delta)));
 		};
 	
 	// 2. Initialize values for η (the learning rate), α (the momentum), ξ = 0 (the epoch counter) and ξmax (the maximum number of epochs)
@@ -48,7 +56,7 @@ var NETWORK = function(config,cb)
 		//momentum
 		this.a = config.a || 0.5;
 		//max epoch
-		this.eMax = config.eMax || 5;
+		this.eMax = config.eMax || 2000;
 		//current epoch
 		this.e = 0;
 		//number of neurons for the hidden input
@@ -57,6 +65,8 @@ var NETWORK = function(config,cb)
 NETWORK.prototype.train = function(trainingSet, targetOutputs, cb)
 {
 	var at = 0;
+
+
 //adding -1 to the end of every line in order to use the bias
 	for (var i = 0; i < trainingSet.length; i++) {
 		trainingSet[i].push(-1);
@@ -112,11 +122,13 @@ NETWORK.prototype.train = function(trainingSet, targetOutputs, cb)
 			var accuracy = 0;
 
 			//vi. Determine if the target output has been correctly predicted.
-			for (var i = 0; i < aRes; i++) {
+			for (var i = 0; i < aRes.length; i++) {
+				// console.log(aRes[i],"vs",targetOutputs[k][i]);
 				if (aRes[i] != targetOutputs[k][i]) incorrectCount++;
 				if (aRes[i] == targetOutputs[k][i]) correctCount++;
 			};
-			
+			// console.log("wrong",incorrectCount);
+			// console.log("right",correctCount);
 			if (!incorrectCount)
 				accuracy = 1;
 
@@ -145,9 +157,45 @@ NETWORK.prototype.train = function(trainingSet, targetOutputs, cb)
 				hError.push(error);
 			};
 
-			console.log(hError);
+			//x. Calculate the new weight values for the hidden-to-output weights (∆wkj = −η*δok*yj + α∆wkj; wkj+ = ∆wkj;)
+
+			for (var o = 0; o < this.oN; o++) 
+			{
+				var error = oError[o];
+				var delta = this.oDelta[o];
+				var w = this.oW[o];
+				
+				for (var h = 0; h < this.hN; h++) 
+				{
+					var y = hRes[h];
+					delta[h] = (-1*this.n*error*y)+(this.a*delta[h]);
+					w[h] += delta[h];					
+				};
+			};
+
+			//xi. Calculate the new weight values for the weights between hidden neuron j and input neuron i: ∆vji = −η*δyj*zi + α*∆vji; vji+ = ∆vji
+			for (var h = 0; h < this.hN; h++) 
+			{
+				var error = hError[h];
+				var delta = this.hDelta[h];
+				var w = this.hW[h];
+				
+				for (var i = 0; i <= this.iN; i++) 
+				{
+					var z = trainingSet[k][i];
+					delta[i] = (-1*this.n*error*z)+(this.a*delta[i]);
+					w[h] += delta[i];					
+				};
+			};
+
+			// console.log(this.hW);
+			// console.log(this.hDelta);
 
 		};
+
+		//(d) Calculate the percentage correctly classified training patterns as AT = AT /PT ∗ 100, where PT is the total number of patterns in the training set.
+		at = at/trainingSet.length*100;		
+		console.log("Accuracy",at);
 	}
 	cb(this)
 };
@@ -158,12 +206,9 @@ var n = new NETWORK({},function(a){
 	console.log(a);
 });
 
-var data = [
-[0.1361904761904762,0.02,0.04666666666666667,0.029523809523809525,0.13428571428571429,0.009523809523809525,0.008571428571428572,0.02095238095238095,0.06857142857142857,0.0009523809523809524,0.011428571428571429,0.045714285714285714,0.04,0.08190476190476191,0.06571428571428571,0.039047619047619046,0.0009523809523809524,0.0838095238095238,0.05333333333333334,0.04,0.01619047619047619,0.0038095238095238095,0.03142857142857143,0.0019047619047619048,0.009523809523809525,0],
-[0.07979833101529903,0.01773296244784423,0.0003477051460361613,0.05006954102920723,0.18132823365785813,0.006606397774687065,0.032162726008344925,0.018949930458970792,0.07840751043115438,0.008344923504867872,0.0368567454798331,0.043636995827538244,0.027642559109874825,0.07510431154381085,0.06536856745479833,0.014082058414464534,0.0003477051460361613,0.06449930458970793,0.06675938803894298,0.056154381084840055,0.02121001390820584,0.018776077885952713,0.020166898470097356,0.00017385257301808066,0.015299026425591099,0.00017385257301808066]
-];
+var data = require("./input_data.json");
 
-var targetOutputs = [[0,1],[1,0]]; //[afr,eng]
+var targetOutputs = require("./input_cat.json");; //[afr,eng]
 n.train(data,targetOutputs,function(network){
 	//console.log(network);
 });
