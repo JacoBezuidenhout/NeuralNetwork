@@ -56,6 +56,7 @@ var NETWORK = function(config,cb)
 	
 		//learning rate
 		this.n = config.n || 0.1;
+		this.n = config.n || 0.1;
 		//momentum
 		this.a = config.a || 0.1;
 		//max epoch
@@ -293,11 +294,11 @@ var generalOutputs = require("./general_cat.json");; //[afr,eng]
 
 fs.writeFile('results.json', '[', function (err) {});
 
+var threadjs = require('thread.js');
 var n = [];
 for (var A = 1; A < 10; A++) {
 	n[A] = [];
 	
-
 		console.log("Started",A);
 		for (var B = 1; B < 10; B++) {
 		
@@ -311,6 +312,5 @@ for (var A = 1; A < 10; A++) {
 				fs.appendFile('results.json', JSON.stringify({settings: settings, results:results})+',\n', function (err) {});
 			});
 		};
-
 
 };

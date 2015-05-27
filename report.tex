@@ -1,0 +1,47 @@
+\documentclass[pdftex,10pt,a4paper]{report}
+
+	\usepackage[pdftex]{graphicx}
+	\usepackage[textwidth = 200mm,margin = 15mm]{geometry}
+	\usepackage{hyperref}
+
+	\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+
+\begin{document}
+
+\include{title}
+
+\newpage
+
+\pagenumbering{gobble}
+
+\newpage
+\pagenumbering{roman}
+
+\tableofcontents 
+
+\newpage
+\pagenumbering{arabic}
+
+\begingroup
+\renewcommand{\cleardoublepage}{}
+\renewcommand{\clearpage}{}
+\chapter{Dataset}
+\paragraph{I have used a web scraper to scrape data from 2 websites:}
+\begin{itemize}
+	\item{woes.co.za - Creative writing website for Afrikaans}
+	\item{mibba.com - Creative writing in English}
+\end{itemize}
+\section{Number of chunks used}
+\paragraph{I used different size chunks. All were larger than 300 characters. }	
+\subsection{Afrikaans: }	
+\section{How frequencies were calculated}
+\section{How special characters were handled}
+\section{Store format}
+\section{How the data was pre-processed}
+
+
+				
+\endgroup
+	
+\end{document}
+
