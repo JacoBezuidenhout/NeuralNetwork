@@ -60,11 +60,11 @@ var NETWORK = function(config,cb)
 		//momentum
 		this.a = config.a || 0.1;
 		//max epoch
-		this.eMax = config.eMax || 50000;
+		this.eMax = config.eMax || 500;
 		//current epoch
 		this.e = 0;
 		//set update rate for console.log
-		this.updateRate = config.updateRate || 500;
+		this.updateRate = config.updateRate || 10;
 };
 
 NETWORK.prototype.train = function(trainingSet, targetOutputs, generalizationSet, generalizationOutputs, cb)
@@ -91,6 +91,7 @@ NETWORK.prototype.train = function(trainingSet, targetOutputs, generalizationSet
 		ag = 0;
 		// (b) Increment the epoch counter (ξ++)
 		this.e++;
+		// console.log('BEFORE',this.hW);
 		// (c) For each pattern in the training set DT
 		for (var k = 0; k < trainingSet.length; k++)
 		{
@@ -107,6 +108,7 @@ NETWORK.prototype.train = function(trainingSet, targetOutputs, generalizationSet
 				};
 				
 				hRes.push(calculateSigmoid(sum));
+
 			};
 
 			//calculating the activation from the hidden layer to the output layer
@@ -197,7 +199,7 @@ NETWORK.prototype.train = function(trainingSet, targetOutputs, generalizationSet
 				{
 					var z = trainingSet[k][i];
 					delta[i] = (-1*this.n*error*z)+(this.a*delta[i]);
-					w[h] += delta[i];					
+					w[i] += delta[i];					
 				};
 			};
 
@@ -208,6 +210,7 @@ NETWORK.prototype.train = function(trainingSet, targetOutputs, generalizationSet
 
 		//(d) Calculate the percentage correctly classified training patterns as AT = AT /PT ∗ 100, where PT is the total number of patterns in the training set.
 		at = at/trainingSet.length*100;		
+		// console.log('AFTER',this.hW);
 
 		for (var k = 0; k < generalizationSet.length; k++)
 		{
@@ -269,7 +272,7 @@ NETWORK.prototype.train = function(trainingSet, targetOutputs, generalizationSet
 
 		if (!(this.e % this.updateRate)) 
 		{
-			console.log({epoch: this.e,at: {accuracy: at, size: trainingSet.length},ag:{accuracy: ag, size: generalizationSet.length}});
+			// console.log({epoch: this.e,at: {accuracy: at, size: trainingSet.length},ag:{accuracy: ag, size: generalizationSet.length}});
 			results.push(JSON.parse(JSON.stringify({epoch: this.e,at: {accuracy: at, size: trainingSet.length},ag:{accuracy: ag, size: generalizationSet.length}})));
 		}
 
@@ -292,25 +295,30 @@ var targetOutputs = require("./input_cat.json");; //[afr,eng]
 var generalData = require("./general_data.json");
 var generalOutputs = require("./general_cat.json");; //[afr,eng]
 
-fs.writeFile('results.json', '[', function (err) {});
 
-var threadjs = require('thread.js');
 var n = [];
-for (var A = 1; A < 10; A++) {
+for (var A = 1; A < 10; A++) 
+{
 	n[A] = [];
+	fs.writeFile('results'+ A +'.json', '[', function (err) {});
 	
 		console.log("Started",A);
-		for (var B = 1; B < 10; B++) {
-		
-			n[A][B] = new NETWORK({a:(A/10),n:(B/10)},function(a){
-				console.log(a);
-			});
+		for (var B = 1; B < 10; B++) 
+		{
+			n[A][B] = [];
+			for (var z = 1; z < 30; z++) 
+			{
+				n[A][B][z] = new NETWORK({a:(A/10),n:(B/10)},function(a){
+					console.log(a);
+				});
 
-			// n[A][B].train(copy(targetData),copy(targetOutputs),copy(generalData),copy(generalOutputs),function(results,settings){
-			n[A][B].train(copy(targetData),copy(targetOutputs),copy(targetData),copy(targetOutputs),function(results,settings){
-				console.log(results);
-				fs.appendFile('results.json', JSON.stringify({settings: settings, results:results})+',\n', function (err) {});
-			});
+				n[A][B][z].train(copy(targetData),copy(targetOutputs),copy(generalData),copy(generalOutputs),function(results,settings){
+				// n[A][B].train(copy(targetData),copy(targetOutputs),copy(targetData),copy(targetOutputs),function(results,settings){
+					// console.log(results);
+					fs.appendFile('results'+ A +'.json', JSON.stringify({iteration: z, a: settings.a, n: settings.n, hN: settings.hN, results:results})+',\n', function (err) {});
+				});
+			};
 		};
+	fs.appendFile('results'+ A +'.json', ']', function (err) {});
 
 };

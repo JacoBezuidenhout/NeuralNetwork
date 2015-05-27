@@ -10,7 +10,7 @@ fs.writeFile('english.txt', '', function (err) {});
 //Get Afrikaans Stories and count the characters
 var afrikaans = function()
 {
-	for (var page = 400; page < 600; page+=5)
+	for (var page = 0; page < 600; page+=5)
 	{
 	
 		xray('http://www.woes.co.za/bydrae/kortverhale/'+page)
@@ -128,7 +128,7 @@ var other = function()
 
 var english = function()
 {
-	for (var page = 20; page < 40; page++) 
+	for (var page = 0; page < 40; page++) 
 	{
 			
 		xray('http://www.mibba.com/Stories/?page='+page)
