@@ -1,5 +1,5 @@
 // index.js
-
+var fs = require('fs');
 //helper functions
 
 function calculateSigmoid(x){	
@@ -9,9 +9,12 @@ function calculateSigmoid(x){
 var NETWORK = function(config,cb)
 {
 	// 1. Initialize all the weights (including the threshold values) to random values in the range [1/−√fanin,1/√fanin],where f anin is the number of weights leading to the neuron.
-	
+		
+		console.log(config);
+
 		this.iN = config.iN || 26;
 		this.oN = config.oN || 2;
+		//number of neurons for the hidden input
 		this.hN = config.hN || 10;
 		this.hW = [];//Weights for hidden to output
 		this.oW = [];//Weights for input to hidden
@@ -52,30 +55,39 @@ var NETWORK = function(config,cb)
 	// 2. Initialize values for η (the learning rate), α (the momentum), ξ = 0 (the epoch counter) and ξmax (the maximum number of epochs)
 	
 		//learning rate
-		this.n = config.n || 0.5;
+		this.n = config.n || 0.1;
 		//momentum
-		this.a = config.a || 0.5;
+		this.a = config.a || 0.1;
 		//max epoch
-		this.eMax = config.eMax || 2000;
+		this.eMax = config.eMax || 50000;
 		//current epoch
 		this.e = 0;
-		//number of neurons for the hidden input
+		//set update rate for console.log
+		this.updateRate = config.updateRate || 500;
 };
 
-NETWORK.prototype.train = function(trainingSet, targetOutputs, cb)
+NETWORK.prototype.train = function(trainingSet, targetOutputs, generalizationSet, generalizationOutputs, cb)
 {
+	var results = [];
 	var at = 0;
-
-
+	var ag = 0;
+	var correctCount = 0;
+	var incorrectCount = 0;
+	var accuracy = 0;
+	
 //adding -1 to the end of every line in order to use the bias
 	for (var i = 0; i < trainingSet.length; i++) {
 		trainingSet[i].push(-1);
+	};
+	for (var i = 0; i < generalizationSet.length; i++) {
+		generalizationSet[i].push(-1);
 	};
 // 3. Repeat until the maximum number of epochs (ξ = ξmax)
 	while (this.e != this.eMax)
 	{
 		// (a) Set the training accuracy to zero (AT = 0)
 		at = 0;
+		ag = 0;
 		// (b) Increment the epoch counter (ξ++)
 		this.e++;
 		// (c) For each pattern in the training set DT
@@ -117,9 +129,9 @@ NETWORK.prototype.train = function(trainingSet, targetOutputs, cb)
 				else if(oRes[i] <= 0.3) aRes[i] = 0;
 			};
 
-			var correctCount = 0;
-			var incorrectCount = 0;
-			var accuracy = 0;
+			correctCount = 0;
+			incorrectCount = 0;
+			accuracy = 0;
 
 			//vi. Determine if the target output has been correctly predicted.
 			for (var i = 0; i < aRes.length; i++) {
@@ -195,20 +207,110 @@ NETWORK.prototype.train = function(trainingSet, targetOutputs, cb)
 
 		//(d) Calculate the percentage correctly classified training patterns as AT = AT /PT ∗ 100, where PT is the total number of patterns in the training set.
 		at = at/trainingSet.length*100;		
-		console.log("Accuracy",at);
+
+		for (var k = 0; k < generalizationSet.length; k++)
+		{
+			//calculating the activation from the input to the hidden layer
+			var hRes = [];
+
+			for (var i = 0; i < this.hN; i++) 
+			{
+				var sum = 0;
+				
+				for (var j = 0; j < generalizationSet[k].length; j++) 
+				{
+					sum += (this.hW[i][j]*generalizationSet[k][j]);
+				};
+				
+				hRes.push(calculateSigmoid(sum));
+			};
+
+			//calculating the activation from the hidden layer to the output layer
+			var oRes = [];
+
+			for (var i = 0; i < this.oN; i++) 
+			{
+				var sum = 0;
+				for (var j = 0; j < hRes.length; j++) 
+				{
+					sum += this.oW[i][j]*hRes[j];
+				};
+				oRes.push(calculateSigmoid(sum));
+			};
+
+			var aRes = [-1,-1];
+
+			//v. Determine if the actual output, ak, should be 0 or 1,
+			for (var i = 0; i < this.oN; i++) {
+				if (oRes[i] >= 0.7) aRes[i] = 1;
+				else if(oRes[i] <= 0.3) aRes[i] = 0;
+			};
+
+			correctCount = 0;
+			incorrectCount = 0;
+			accuracy = 0;
+
+			//vi. Determine if the output has been correctly predicted.
+			for (var i = 0; i < aRes.length; i++) {
+				if (aRes[i] != generalizationOutputs[k][i]) incorrectCount++;
+				if (aRes[i] == generalizationOutputs[k][i]) correctCount++;
+			};
+			  // console.log("wrong",generalizationOutputs[k]);
+			// console.log("right",correctCount);
+			if (!incorrectCount)
+				accuracy = 1;
+
+			ag += accuracy;
+
+		};
+
+		ag = ag/generalizationSet.length*100;
+
+		if (!(this.e % this.updateRate)) 
+		{
+			console.log({epoch: this.e,at: {accuracy: at, size: trainingSet.length},ag:{accuracy: ag, size: generalizationSet.length}});
+			results.push(JSON.parse(JSON.stringify({epoch: this.e,at: {accuracy: at, size: trainingSet.length},ag:{accuracy: ag, size: generalizationSet.length}})));
+		}
+
 	}
-	cb(this)
+
+	cb(results,this)
 };
 
 module.export = NETWORK;
 
-var n = new NETWORK({},function(a){
-	console.log(a);
-});
+var copy = function(arr)
+{
+	return JSON.parse(JSON.stringify(arr));
+}
 
-var data = require("./input_data.json");
 
+var targetData = require("./input_data.json");
 var targetOutputs = require("./input_cat.json");; //[afr,eng]
-n.train(data,targetOutputs,function(network){
-	//console.log(network);
-});
+
+var generalData = require("./general_data.json");
+var generalOutputs = require("./general_cat.json");; //[afr,eng]
+
+fs.writeFile('results.json', '[', function (err) {});
+
+var n = [];
+for (var A = 1; A < 10; A++) {
+	n[A] = [];
+	
+
+		console.log("Started",A);
+		for (var B = 1; B < 10; B++) {
+		
+			n[A][B] = new NETWORK({a:(A/10),n:(B/10)},function(a){
+				console.log(a);
+			});
+
+			// n[A][B].train(copy(targetData),copy(targetOutputs),copy(generalData),copy(generalOutputs),function(results,settings){
+			n[A][B].train(copy(targetData),copy(targetOutputs),copy(targetData),copy(targetOutputs),function(results,settings){
+				console.log(results);
+				fs.appendFile('results.json', JSON.stringify({settings: settings, results:results})+',\n', function (err) {});
+			});
+		};
+
+
+};

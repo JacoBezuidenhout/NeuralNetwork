@@ -10,6 +10,8 @@
   "author": "Jaco Bezuidenhout",
   "license": "ISC",
   "dependencies": {
+    "multi-thread.js": "0.0.1",
+    "threadjs": "0.0.3",
     "x-ray": "^1.0.5"
   }
 }
