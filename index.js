@@ -295,18 +295,18 @@ var targetOutputs = require("./input_cat.json");; //[afr,eng]
 var generalData = require("./general_data.json");
 var generalOutputs = require("./general_cat.json");; //[afr,eng]
 
-
+var thread = 2;
 var n = [];
 for (var A = 1; A < 10; A++) 
 {
 	n[A] = [];
-	fs.writeFile('results'+ A +'.json', '[', function (err) {});
 	
 		console.log("Started",A);
 		for (var B = 1; B < 10; B++) 
 		{
+			fs.writeFile('results_' + thread + '_' + A + '_' + B + '.json', '[', function (err) {});
 			n[A][B] = [];
-			for (var z = 1; z < 30; z++) 
+			for (var z = 0; z < 10; z++) 
 			{
 				n[A][B][z] = new NETWORK({a:(A/10),n:(B/10)},function(a){
 					console.log(a);
@@ -315,7 +315,7 @@ for (var A = 1; A < 10; A++)
 				n[A][B][z].train(copy(targetData),copy(targetOutputs),copy(generalData),copy(generalOutputs),function(results,settings){
 				// n[A][B].train(copy(targetData),copy(targetOutputs),copy(targetData),copy(targetOutputs),function(results,settings){
 					// console.log(results);
-					fs.appendFile('results'+ A +'.json', JSON.stringify({iteration: z, a: settings.a, n: settings.n, hN: settings.hN, results:results})+',\n', function (err) {});
+					fs.appendFile('results'+ A + '_' + B + '.json', JSON.stringify({iteration: z, a: settings.a, n: settings.n, hN: settings.hN, results:results})+',\n', function (err) {});
 				});
 			};
 		};
