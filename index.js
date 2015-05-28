@@ -55,10 +55,9 @@ var NETWORK = function(config,cb)
 	// 2. Initialize values for η (the learning rate), α (the momentum), ξ = 0 (the epoch counter) and ξmax (the maximum number of epochs)
 	
 		//learning rate
-		this.n = config.n || 0.1;
-		this.n = config.n || 0.1;
+		this.n = config.n || 0.5;
 		//momentum
-		this.a = config.a || 0.1;
+		this.a = config.a || 0.5;
 		//max epoch
 		this.eMax = config.eMax || 500;
 		//current epoch
@@ -76,6 +75,7 @@ NETWORK.prototype.train = function(trainingSet, targetOutputs, generalizationSet
 	var incorrectCount = 0;
 	var accuracy = 0;
 	
+
 //adding -1 to the end of every line in order to use the bias
 	for (var i = 0; i < trainingSet.length; i++) {
 		trainingSet[i].push(-1);
@@ -303,16 +303,17 @@ for (var A = 1; A < 2; A++)
 	n[A] = [];
 	
 		console.log("Started",A);
-		for (var B = 1; B < 10; B++) 
+		for (var B = 1; B < 2; B++) 
 		{
 			fs.writeFile('results_' + thread + '_' + A + '_' + B + '.csv', '', function (err) {});
 			n[A][B] = [];
 			var avgAt = [];
 			var avgAg = [];
 			var epoch = [];
-			for (var z = 0; z < 3; z++) 
+			for (var z = 0; z < 30; z++) 
 			{
-				n[A][B][z] = new NETWORK({a:(A/10),n:(B/10)},function(a){
+				// n[A][B][z] = new NETWORK({a:(B/10),n:(A/10)},function(a){
+				n[A][B][z] = new NETWORK({hN:45,n:0.5,a:0.5},function(a){
 					console.log(a);
 				});
 
@@ -331,8 +332,8 @@ for (var A = 1; A < 2; A++)
 			};
 			
 			for (var r = 0; r < avgAt.length; r++) {
-				avgAt[r] /= avgAt.length;
-				avgAg[r] /= avgAt.length;
+				avgAt[r] /= 30;
+				avgAg[r] /= 30;
 				console.log([epoch[r],avgAt[r],avgAg[r]].join(','));
 				fs.appendFile('results_' + thread + '_' + A + '_' + B + '.csv', [epoch[r],avgAt[r],avgAg[r]].join('\t') + '\n', function (err) {});
 			};
