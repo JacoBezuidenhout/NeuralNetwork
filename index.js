@@ -273,12 +273,13 @@ NETWORK.prototype.train = function(trainingSet, targetOutputs, generalizationSet
 		if (!(this.e % this.updateRate)) 
 		{
 			// console.log({epoch: this.e,at: {accuracy: at, size: trainingSet.length},ag:{accuracy: ag, size: generalizationSet.length}});
-			results.push(JSON.parse(JSON.stringify({epoch: this.e,at: {accuracy: at, size: trainingSet.length},ag:{accuracy: ag, size: generalizationSet.length}})));
+			// results.push(JSON.parse(JSON.stringify({epoch: this.e,at: {accuracy: at, size: trainingSet.length},ag:{accuracy: ag, size: generalizationSet.length}})));
+			results.push(JSON.parse(JSON.stringify({epoch: this.e,at: at, ag:ag})));
 		}
 
 	}
 
-	cb(results,this)
+	return results;
 };
 
 module.export = NETWORK;
@@ -295,30 +296,46 @@ var targetOutputs = require("./input_cat.json");; //[afr,eng]
 var generalData = require("./general_data.json");
 var generalOutputs = require("./general_cat.json");; //[afr,eng]
 
-var thread = 2;
+var thread = process.argv[2];
 var n = [];
-for (var A = 1; A < 10; A++) 
+for (var A = 1; A < 2; A++) 
 {
 	n[A] = [];
 	
 		console.log("Started",A);
 		for (var B = 1; B < 10; B++) 
 		{
-			fs.writeFile('results_' + thread + '_' + A + '_' + B + '.json', '[', function (err) {});
+			fs.writeFile('results_' + thread + '_' + A + '_' + B + '.csv', '', function (err) {});
 			n[A][B] = [];
-			for (var z = 0; z < 10; z++) 
+			var avgAt = [];
+			var avgAg = [];
+			var epoch = [];
+			for (var z = 0; z < 3; z++) 
 			{
 				n[A][B][z] = new NETWORK({a:(A/10),n:(B/10)},function(a){
 					console.log(a);
 				});
 
-				n[A][B][z].train(copy(targetData),copy(targetOutputs),copy(generalData),copy(generalOutputs),function(results,settings){
+				results = n[A][B][z].train(copy(targetData),copy(targetOutputs),copy(generalData),copy(generalOutputs),function(results,settings){
 				// n[A][B].train(copy(targetData),copy(targetOutputs),copy(targetData),copy(targetOutputs),function(results,settings){
-					// console.log(results);
-					fs.appendFile('results'+ A + '_' + B + '.json', JSON.stringify({iteration: z, a: settings.a, n: settings.n, hN: settings.hN, results:results})+',\n', function (err) {});
+					fs.appendFile('results_' + thread + '_' + A + '_' + B + '.csv', [z, settings.a, settings.n, settings.hN, results.join(',')].join(',') + ',\n', function (err) {});
 				});
-			};
-		};
-	fs.appendFile('results'+ A +'.json', ']', function (err) {});
 
-};
+				for (var r = 0; r < results.length; r++) {
+					avgAt[r] = avgAt[r] || 0;
+					avgAg[r] = avgAg[r] || 0;
+					avgAt[r] += results[r].at;
+					avgAg[r] += results[r].ag;
+					epoch[r] = results[r].epoch;
+				};
+			};
+			
+			for (var r = 0; r < avgAt.length; r++) {
+				avgAt[r] /= avgAt.length;
+				avgAg[r] /= avgAt.length;
+				console.log([epoch[r],avgAt[r],avgAg[r]].join(','));
+				fs.appendFile('results_' + thread + '_' + A + '_' + B + '.csv', [epoch[r],avgAt[r],avgAg[r]].join('\t') + '\n', function (err) {});
+			};
+
+		};
+}; 
